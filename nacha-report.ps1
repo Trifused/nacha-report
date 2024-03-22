@@ -1,34 +1,60 @@
-
 <#PSScriptInfo
 
 .VERSION 1.0.6
 
 .GUID 2687ebd5-b9f5-403a-bf2b-13fed20fd6cd
 
-.AUTHOR Lawrence Billinghurst
+.AUTHOR Lawrence Billinghurst larry@trifused.com
 
-.COMPANYNAME TriFused
+.COMPANYNAME
 
-.COPYRIGHT 2024
+.COPYRIGHT
 
-.TAGS NACHA ACH BANKING FINTECH
+.TAGS NACHA ACH BANKING FINTECH3
 
 .LICENSEURI https://github.com/Trifused/nacha-report/blob/main/LICENSE
 
 .PROJECTURI https://github.com/Trifused/nacha-report
 
-.ICONURI 
+.ICONURI
 
 .EXTERNALMODULEDEPENDENCIES 
 
-.REQUIREDSCRIPTS 
+.REQUIREDSCRIPTS
 
-.EXTERNALSCRIPTDEPENDENCIES 
+.EXTERNALSCRIPTDEPENDENCIES
 
 .RELEASENOTES
 
 
+.PRIVATEDATA
+
 #>
+
+<# 
+
+.DESCRIPTION 
+ 
+    NACHA - NACHA (National Automated Clearing House Association) is the organization that 
+    manages the development, administration, and governance of the ACH Network in the United 
+    States. The ACH Network is a payment system that allows for the electronic transfer of 
+    funds between banks and credit unions.
+
+    The NACHA file format adheres to a structure where each line, referred to as a **record**,
+    contains exactly 94 characters, making also know as fixed-width ASCII file format. 
+    These records are organized into various **fields**, each occupying a predetermined position 
+    within the line.
+
+    A NACHA file contains 6 different types of records:
+
+    Type 1. **File Header**: Starts the file, with details like company name and file creation date.
+    Type 5. **Batch Header**: Begins a group of transactions, indicating the payment type and originator.
+    Type 6. **Entry Detail**: Represents individual financial transactions, detailing account numbers and amounts.
+    Type 7. **Addenda**: Optional, provides extra information for a transaction.
+    Type 8. **Batch Control**: Ends a batch, summarizing its transactions and total amount.
+    Type 9. **File Control**: Concludes the file, summarizing all batches and entries. 
+
+#> 
 
 
 #############################################################################
@@ -74,8 +100,7 @@
     Type 8. **Batch Control**: Ends a batch, summarizing its transactions and total amount.
     Type 9. **File Control**: Concludes the file, summarizing all batches and entries.
 
-.VERSION
-    1.0.6
+
 
 .PARAMETER ParameterName
     -nachaFilePath C:\FolderA\FolderB\mynachafile.txt  -- path to nacha file (Any extension will work)
