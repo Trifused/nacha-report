@@ -13,9 +13,9 @@
 
 .TAGS NACHA ACH BANKING FINTECH
 
-.LICENSEURI 
+.LICENSEURI https://github.com/Trifused/nacha-report/blob/main/LICENSE
 
-.PROJECTURI 
+.PROJECTURI https://github.com/Trifused/nacha-report
 
 .ICONURI 
 
@@ -42,6 +42,7 @@
 #
 # VERSION HISTORY
 # 1.0 2024-03-20 Initial Version.
+# Current: 1.0.6
 # > used field mapping from Joshua Nasiatka - Verify-ACH.ps1
 # Ref: https://github.com/jossryan/ACH-Verify-Tool
 #
@@ -73,8 +74,13 @@
     Type 8. **Batch Control**: Ends a batch, summarizing its transactions and total amount.
     Type 9. **File Control**: Concludes the file, summarizing all batches and entries.
 
+.VERSION
+    1.0.6
+
 .PARAMETER ParameterName
-    -nachaFilePath C:\FolderA\FolderB\mynachafile.txt  (Any extension will work)
+    -nachaFilePath C:\FolderA\FolderB\mynachafile.txt  -- path to nacha file (Any extension will work)
+    -testdata       -- Will auto download some test data 
+    -showTrace6     -- Will show the Trace codes for type 6
 
 .EXAMPLE
     .\Nacha-Report.ps1 -nachaFielPath
@@ -116,18 +122,10 @@
 
 param (
     [string]$nachaFilePath=""
-    ,[switch]$ShowTrace6
-    ,[string]$no
+    ,[switch]$showTrace6
+ #   ,[string]$no
     ,[switch]$testdata
 )
-
-   # [System.Collections.ArrayList]$ACHContents = @()
-
-
-
-# Test Data File Name
-
-
 
 # Get the directory where the script is located
 $scriptDirectory = $PSScriptRoot
@@ -138,61 +136,61 @@ Write-Output "This Script is running from: $scriptDirectory"
 $defultTestDataFileName = $scriptDirectory + "\test-nacha-file.txt"
 
 
-# Check if the file path is provided
+# Test data and file processing
 if (-not ($testdata) ){
 
-
     if (-not $nachaFilePath)  {
-        Write-Host "Usage: ./Nacha-Report.ps1 -nachaFilePath <Path to NACHA file>"
-        Write-Host "Usage: ./Nacha-Report.ps1 -testdata"
+        Write-Host "Usage: ./nacha-report.ps1 -nachaFilePath <Path to NACHA file>"
+        Write-Host "Usage: ./nacha-report.ps1 -testdata"
         exit 1
     } 
 
-} else{
+    } else{
     if ($testdata) {
         if (-not (Test-Path $defultTestDataFileName )) {
             #Write-Host "Test data file not found downloading."
             Write-Host "Test data file not found."
 
-            # Ask the user if they want to download the file
-            $userInput = Read-Host "Do you want to download the test data file? (Y/N)"
-            
+            # Ask the user if they want to download the test nacha file
+            $testfileuri = "https://drive.google.com/file/d/1-tEJ6Y_KMvUIuL55DG1oddekG9cD2WMN"
+            Write-Host "View the test nacha data file at: $($testfileuri)/view"
+            $userInput = Read-Host "Do you want to download the test nacha data file? (Y/N)"
+
             if ($userInput -eq 'Y' -or $userInput -eq 'y') {
-                $url = "https://drive.google.com/uc?export=download&id=1-tEJ6Y_KMvUIuL55DG1oddekG9cD2WMN"
-                $outputPath = $defultTestDataFileName
-                
-                # Create a web client object
-                $client = New-Object System.Net.WebClient
-                
-                try {
-                    $client.DownloadFile($url, $outputPath)
-                    Write-Host "File downloaded successfully to: $outputPath"
-                }
-                catch {
-                    Write-Host "An error occurred during file download: $_"
-                }
+                        # Assuming $defultTestDataFileName is defined earlier in the script
+                        $outputPath = $defultTestDataFileName
+                        
+                        # The direct download URL should be different from the view URL
+                        # Convert Google Drive view link to download link (this may require a different approach for actual downloading)
+                        $url = $testfileuri.Replace("/file/d/", "/uc?export=download&id=").Replace("/view", "")
+                        
+                        # Create a web client object
+                        $client = New-Object System.Net.WebClient
+                        
+                        try {
+                            $client.DownloadFile($url, $outputPath)
+                            Write-Host "File downloaded successfully to: $outputPath"
+                        }
+                        catch {
+                            Write-Host "An error occurred during file download: $_"
+                        }
             } else {
                 Write-Host "Download canceled by the user."
                 exit 1
-            }
-            
-
-
+                }
         }
         $nachaFilePath  
         $nachaFilePath = $defultTestDataFileName 
         $nachaFilePath
-    }
+        }
 
-#$nachaFilePath = $defultTestDataFileName 
+    #$nachaFilePath = $defultTestDataFileName 
 
-    if (-not (Test-Path $nachaFilePath) ) {
-        Write-Host "Error: File not found."
-        exit 1
-    }
+        if (-not (Test-Path $nachaFilePath) ) {
+            Write-Host "Error: File not found."
+            exit 1
+        }
 }
-
-
 
 Function ReadACHLine ($line) {
 
@@ -211,6 +209,7 @@ Function ReadACHLine ($line) {
 
     # 1 - FILE HEADER RECORD
     if ($record_type -eq '1') {
+
         $record_details = [PSCustomObject]@{
             'record_type'                      = $line.substring(0,1).trim()
             'priority_code'                    = $line.substring(1,2).trim()
@@ -233,6 +232,7 @@ Function ReadACHLine ($line) {
         
     # 5 - COMPANY/BATCH HEADER RECORD
     } elseif ($record_type -eq '5') {
+
         $record_details = [PSCustomObject]@{
             'record_type'                      = $line.substring(0,1).trim()
             'service_class_code'               = $line.substring(1,3).trim()
@@ -248,7 +248,6 @@ Function ReadACHLine ($line) {
             'originating_dfi_identification'   = $line.substring(79,8).trim()
             'batch_number'                     = $line.substring(87,7).trim()
         }
-    
         # ##### Add Line to Output Record 
         $ACHContents.Add($record_details) |Out-Null
         # #####
@@ -276,7 +275,7 @@ Function ReadACHLine ($line) {
     
     # 7 - ADDENDA RECORD
     } elseif ($record_type -eq '7') {
-            # Write-Output ">>>>>>>> Record 7 - Addenda Record"
+
         $record_details = [PSCustomObject]@{
             'record_type'                      = $line.substring(0,1).trim()
             'addenda_type_code'                = $line.substring(1,2).trim()
@@ -291,7 +290,7 @@ Function ReadACHLine ($line) {
 
     # 8 - BATCH CONTROL RECORD
     } elseif ($record_type -eq '8') {
-                # Write-Output ">>>>>>>> Record 8 - Batch Control Record"
+
         $record_details = [PSCustomObject]@{
             'record_type'                      = $line.substring(0,1).trim()
             'service_class_code'               = $line.substring(1,3).trim()
@@ -313,6 +312,7 @@ Function ReadACHLine ($line) {
     # 9 - FILE CONTROL RECORD
     } elseif ($record_type -eq '9') {
         if ($line -ne '9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999') {
+
             $record_details = [PSCustomObject]@{
                 'record_type'                      = $line.substring(0,1).trim()
                 'batch_count'                      = $line.substring(1,6).trim()
@@ -330,7 +330,6 @@ Function ReadACHLine ($line) {
  
         } else {
             #Write-Output ">>>End of File"
-            $script:nine_record_counter += 1
         }
 
     # NO OTHER RECORD TYPES
@@ -361,7 +360,7 @@ foreach ($line in $nachaFileContent) {
 
 Write-Host "NACHA File Parsing completed.`r`n"
 
-# Report Build 
+# Build the Report
 $NachaFileTime =""
 $FinalReport =  "--------->>> NACHA File Report <<<---------`r`n" # Clear and Start building report
 $NachafileName = Split-Path -Path $nachaFilePath -Leaf
@@ -372,51 +371,75 @@ $ACHContents | ForEach-Object {
     
     switch ($currentObject.record_type) {
         "1" {
-            $ReportOut = "$($currentObject.record_type), $($currentObject.file_creation_date), $($currentObject.file_creation_time), $($currentObject.immediate_destination_name), $($currentObject.immediate_origin_name)"
-            $NachaFileDate=$($currentObject.file_creation_date)
-            $NachaFileTime=$($currentObject.file_creation_time)
-            # Parse the date string into a DateTime object
-            $parsedDate = [DateTime]::ParseExact($NachaFileDate, "yymmdd", $null)
-            $parsedTime = [DateTime]::ParseExact($NachaFileTime, "HHmm", $null)
-            # Convert the DateTime object into a long date format string and add to report
-            $FinalReport += "NACHA File Date: " + $parsedDate.ToString("MMMM dd, yyyy") +  "`r`n" # Add Date to Report
-            $FinalReport += "NACHA File Time: " + $parsedTime.ToString("hh:mm tt") + "`r`n" # Add Time to Report
-        }
-         "5" {
-              $ReportOut = "  $($currentObject.record_type), $($currentObject.batch_number), $($currentObject.company_entry_description), $($currentObject.effective_entry_date)"
-         }
-         "6" {
-            $TransactionCode = $($currentObject.transaction_code)
-            switch ($TransactionCode){
-                { $_ -in "22", "32" } {$formattedamount =  "{0:N2}" -f $($currentObject.amount)}
-                { $_ -in "27", "37" } {$formattedamount =  "({0:N2})" -f $($currentObject.amount)}
+            if (-not($_ -in $no)) {
+                    $ReportOut = "$($currentObject.record_type), $($currentObject.file_creation_date), $($currentObject.file_creation_time), $($currentObject.immediate_destination_name), $($currentObject.immediate_origin_name)"
+                    $NachaFileDate=$($currentObject.file_creation_date)
+                    $NachaFileTime=$($currentObject.file_creation_time)
+                    # Parse the date string into a DateTime object
+                    $parsedDate = [DateTime]::ParseExact($NachaFileDate, "yymmdd", $null)
+                    $parsedTime = [DateTime]::ParseExact($NachaFileTime, "HHmm", $null)
+                    # Convert the DateTime object into a long date format string and add to report
+                    $FinalReport += "NACHA File Date: " + $parsedDate.ToString("MMMM dd, yyyy") +  "`r`n" # Add Date to Report
+                    $FinalReport += "NACHA File Time: " + $parsedTime.ToString("hh:mm tt") + "`r`n" # Add Time to Report
+                }    
+                $FinalReport += "`n"+$ReportOut # Add data to report
+                break
             }
-
-                #Show Trace Switch Logic
-
-                $ReportOut = "     $($currentObject.record_type), $TransactionCode"
-                if ($ShowTrace6) {
-                    $ReportOut += ", $($currentObject.trace_number)"
+         "5" {
+                if (-not($_ -in $no)) {
+                    $ReportOut = "  $($currentObject.record_type), $($currentObject.batch_number), $($currentObject.company_entry_description), $($currentObject.effective_entry_date)"
                 }
-                $ReportOut += ", $($currentObject.individual_name), $formattedamount"
+                $FinalReport += "`n"+$ReportOut # Add data to report
+                break
+             }
+         "6" {
+                if (-not($_ -in $no)) {
+                        $TransactionCode = $($currentObject.transaction_code)
+                        switch ($TransactionCode){
+                            { $_ -in "22", "32" } {$formattedamount =  "{0:N2}" -f $($currentObject.amount)}
+                            { $_ -in "27", "37" } {$formattedamount =  "({0:N2})" -f $($currentObject.amount)}
+                        }
 
+                        #ShowTrace6 Switch Logic
 
+                        $ReportOut = "     $($currentObject.record_type), $TransactionCode"
+                        if ($ShowTrace6) {
+                            $ReportOut += ", $($currentObject.trace_number)"
+                        }
+                        $ReportOut += ", $($currentObject.individual_name), $formattedamount"
+                }
+                $FinalReport += "`n"+$ReportOut # Add data to report
+                break
         }
          "7" {
-            $ReportOut =  "     $($currentObject.record_type), $($currentObject.addenda_type_code), $($currentObject.addenda_related), $($currentObject.addenda_sequence_number), $($currentObject.entry_detail_sequence_number)"
+            if (-not($_ -in $no)) {
+                $ReportOut =  "     $($currentObject.record_type), $($currentObject.addenda_type_code), $($currentObject.addenda_related), $($currentObject.addenda_sequence_number), $($currentObject.entry_detail_sequence_number)"
+                $FinalReport += "`n"+$ReportOut # Add data to report
+            }
+            $FinalReport += "`n"+$ReportOut # Add data to report
+            break
+            
         }
         "8" {
-            $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry)
-            $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry)
-            $ReportOut =  "  $($currentObject.record_type), $($currentObject.batch_number), $($currentObject.entry_addenda_count_8), $formattedDebitTotal,$formattedCreditTotal"
+            if (-not($_ -in $no)) {
+                $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry)
+                $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry)
+                $ReportOut =  "  $($currentObject.record_type), $($currentObject.batch_number), $($currentObject.entry_addenda_count_8), $formattedDebitTotal,$formattedCreditTotal"
+            }
+            $FinalReport += "`n"+$ReportOut # Add data to report
+            break
         }
         "9" {
-            $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry_in_file)
-            $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry_in_file)
-            $ReportOut = "$($currentObject.record_type), $($currentObject.batch_count),$($currentObject.block_count), $($currentObject.entry_addenda_count_9), $formattedDebitTotal,$formattedCreditTotal"
+            if (-not($_ -in $no)) {
+                $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry_in_file)
+                $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry_in_file)
+                $ReportOut = "$($currentObject.record_type), $($currentObject.batch_count),$($currentObject.block_count), $($currentObject.entry_addenda_count_9), $formattedDebitTotal,$formattedCreditTotal"+"`n"
+            }
+            $FinalReport += "`n"+$ReportOut # Add data to report
+            break
         }
     }
-            $FinalReport += "`n"+$ReportOut # Add data to report
+
 }
 
 $FinalReport += "`n--------->>> NACHA File Report End <<<---------`n" # Add end to report
