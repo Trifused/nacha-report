@@ -1,16 +1,16 @@
 <#PSScriptInfo
 
-.VERSION 1.0.6
+.VERSION 1.0.7
 
 .GUID 2687ebd5-b9f5-403a-bf2b-13fed20fd6cd
 
 .AUTHOR Lawrence Billinghurst larry@trifused.com
 
-.COMPANYNAME
+.COMPANYNAME TriFused
 
-.COPYRIGHT
+.COPYRIGHT 2024
 
-.TAGS NACHA ACH BANKING FINTECH3
+.TAGS NACHA ACH BANKING FINTECH
 
 .LICENSEURI https://github.com/Trifused/nacha-report/blob/main/LICENSE
 
@@ -25,7 +25,6 @@
 .EXTERNALSCRIPTDEPENDENCIES
 
 .RELEASENOTES
-
 
 .PRIVATEDATA
 
@@ -68,7 +67,7 @@
 #
 # VERSION HISTORY
 # 1.0 2024-03-20 Initial Version.
-# Current: 1.0.6
+# Current: 1.0.7
 # > used field mapping from Joshua Nasiatka - Verify-ACH.ps1
 # Ref: https://github.com/jossryan/ACH-Verify-Tool
 #
@@ -106,9 +105,14 @@
     -nachaFilePath C:\FolderA\FolderB\mynachafile.txt  -- path to nacha file (Any extension will work)
     -testdata       -- Will auto download some test data 
     -showTrace6     -- Will show the Trace codes for type 6
+    -no ###         -- remove record types from report
 
 .EXAMPLE
-    .\Nacha-Report.ps1 -nachaFielPath
+    .\nacha-neport.ps1 -nachaFielPath
+    .\nacha-report.ps1 -testdata  -- Use Test data - will prompt to download
+    .\nacha-report.ps1 -no 67     -- Remove type 6 and 7 from report
+    .\nacha-report.ps1 -no 5678   -- Remove type 5, 6, 7 and 8 from report
+
 
 .NOTES
     Additional information about the script, like its version, author, or history.
@@ -132,7 +136,7 @@
         5, [Batch Number], [Transaction Description], [Effective Date]
             6, [Trans Code], {[Trace Number]}, [Reciver Name], [Amount]
             6, [Trans Code], {[Trace Number]}, [Reciver Name], [(Amount) <--debit]
-            7, [Addenda Type Code], [Payment Related Information], [Addenda Sequence Number], [Entry Detail Sequence Number]
+                7, [Addenda Type Code], [Payment Related Information], [Addenda Sequence Number], [Entry Detail Sequence Number]
         8, [Batch Number], [Lines in Batch], [(Debit Total)],[Credit Total]
         9, [Batch Count],[Block Count], [Entry Count], [(Debit Total)],[Credit Total]
         --------->>> NACHA File Report End <<<---------
@@ -148,7 +152,7 @@
 param (
     [string]$nachaFilePath=""
     ,[switch]$showTrace6
- #   ,[string]$no
+    ,[string]$no
     ,[switch]$testdata
 )
 
@@ -394,9 +398,10 @@ $FinalReport = $FinalReport + "NACHA File Name: " + $NachafileName + "`r`n"
 $ACHContents | ForEach-Object {
     $currentObject = $_
     
+
     switch ($currentObject.record_type) {
         "1" {
-            if (-not($_ -in $no)) {
+            if (-not($no.Contains($currentObject.record_type))) {
                     $ReportOut = "$($currentObject.record_type), $($currentObject.file_creation_date), $($currentObject.file_creation_time), $($currentObject.immediate_destination_name), $($currentObject.immediate_origin_name)"
                     $NachaFileDate=$($currentObject.file_creation_date)
                     $NachaFileTime=$($currentObject.file_creation_time)
@@ -406,62 +411,68 @@ $ACHContents | ForEach-Object {
                     # Convert the DateTime object into a long date format string and add to report
                     $FinalReport += "NACHA File Date: " + $parsedDate.ToString("MMMM dd, yyyy") +  "`r`n" # Add Date to Report
                     $FinalReport += "NACHA File Time: " + $parsedTime.ToString("hh:mm tt") + "`r`n" # Add Time to Report
+                    $FinalReport += "`n"+$ReportOut # Add data to report
+                    break
                 }    
-                $FinalReport += "`n"+$ReportOut # Add data to report
-                break
+
             }
          "5" {
-                if (-not($_ -in $no)) {
-                    $ReportOut = "  $($currentObject.record_type), $($currentObject.batch_number), $($currentObject.company_entry_description), $($currentObject.effective_entry_date)"
+                if (-not($no.Contains($currentObject.record_type))) {
+                    $ReportOut = "  $($currentObject.record_type), Batch: $($currentObject.batch_number), $($currentObject.company_entry_description), $($currentObject.effective_entry_date)"
+                    $FinalReport += "`n"+$ReportOut # Add data to report
+                    break
                 }
-                $FinalReport += "`n"+$ReportOut # Add data to report
-                break
+
              }
          "6" {
-                if (-not($_ -in $no)) {
-                        $TransactionCode = $($currentObject.transaction_code)
-                        switch ($TransactionCode){
-                            { $_ -in "22", "32" } {$formattedamount =  "{0:N2}" -f $($currentObject.amount)}
-                            { $_ -in "27", "37" } {$formattedamount =  "({0:N2})" -f $($currentObject.amount)}
-                        }
+            if (-not($no.Contains($currentObject.record_type))) {
+                    $TransactionCode = $($currentObject.transaction_code)
+                    switch ($TransactionCode){
+                        { $_ -in "22", "32" } {$formattedamount =  "{0:N2}" -f $($currentObject.amount)}
+                        { $_ -in "27", "37" } {$formattedamount =  "({0:N2})" -f $($currentObject.amount)}
+                    }
 
-                        #ShowTrace6 Switch Logic
+                    #ShowTrace6 Switch Logic
 
-                        $ReportOut = "     $($currentObject.record_type), $TransactionCode"
-                        if ($ShowTrace6) {
-                            $ReportOut += ", $($currentObject.trace_number)"
-                        }
-                        $ReportOut += ", $($currentObject.individual_name), $formattedamount"
+                    $ReportOut = "     $($currentObject.record_type), $TransactionCode"
+                    if ($ShowTrace6) {
+                        $ReportOut += ", $($currentObject.trace_number)"
+                    }
+                    $ReportOut += ", $($currentObject.individual_name), $formattedamount"
+                    $FinalReport += "`n"+$ReportOut # Add data to report
+                    break
                 }
-                $FinalReport += "`n"+$ReportOut # Add data to report
-                break
+
         }
          "7" {
-            if (-not($_ -in $no)) {
-                $ReportOut =  "     $($currentObject.record_type), $($currentObject.addenda_type_code), $($currentObject.addenda_related), $($currentObject.addenda_sequence_number), $($currentObject.entry_detail_sequence_number)"
+
+            if ((-not($no.Contains($currentObject.record_type)))) {
+                $ReportOut =  "         $($currentObject.record_type), $($currentObject.addenda_type_code),  $($currentObject.entry_detail_sequence_number),  $($currentObject.addenda_related)"
                 $FinalReport += "`n"+$ReportOut # Add data to report
+                $FinalReport += "`n"+$ReportOut # Add data to report
+                break
             }
-            $FinalReport += "`n"+$ReportOut # Add data to report
-            break
-            
+
         }
         "8" {
-            if (-not($_ -in $no)) {
+            if (-not($no.Contains($currentObject.record_type))) {
                 $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry)
                 $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry)
-                $ReportOut =  "  $($currentObject.record_type), $($currentObject.batch_number), $($currentObject.entry_addenda_count_8), $formattedDebitTotal,$formattedCreditTotal"
-            }
-            $FinalReport += "`n"+$ReportOut # Add data to report
-            break
+                $ReportOut =  "  $($currentObject.record_type), Batch: $($currentObject.batch_number), $($currentObject.entry_addenda_count_8), $formattedDebitTotal,$formattedCreditTotal"
+                $FinalReport += "`n"+$ReportOut # Add data to report
+                break           
+             }
+
         }
         "9" {
-            if (-not($_ -in $no)) {
+            if (-not($no.Contains($currentObject.record_type))) {
                 $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry_in_file)
                 $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry_in_file)
                 $ReportOut = "$($currentObject.record_type), $($currentObject.batch_count),$($currentObject.block_count), $($currentObject.entry_addenda_count_9), $formattedDebitTotal,$formattedCreditTotal"+"`n"
+                $FinalReport += "`n"+$ReportOut # Add data to report
+                break            
             }
-            $FinalReport += "`n"+$ReportOut # Add data to report
-            break
+
         }
     }
 
