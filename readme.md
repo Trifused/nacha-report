@@ -10,7 +10,7 @@
 - Customizable to show detailed trace information for each transaction.
 
 ## Version
-1.0.7
+1.0.8
 
 ## Install
 Install-Script -Name nacha-report 
@@ -19,6 +19,10 @@ Install-Script -Name nacha-report
 To use the script, you need to provide the path to the NACHA file you want to analyze. There is also an option to download test data if no file path is provided.
 
 ### Basic Command
-```powershell
+ps>```powershell
 .\nacha-report.ps1 -nachaFilePath "C:\Path\To\Your\File.txt"
 .\nacha-report.ps1 -testdata
+.\nacha-neport.ps1 -nachaFielPath
+.\nacha-report.ps1 -testdata  -- Use Test data - will prompt to download
+.\nacha-report.ps1 -testdata -no 67     -- Remove type 6 and 7 from report
+.\nacha-report.ps1 -testdata -no 5678   -- Remove type 5, 6, 7 and 8 from report

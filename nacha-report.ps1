@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.0.7
+.VERSION 1.0.9
 
 .GUID 2687ebd5-b9f5-403a-bf2b-13fed20fd6cd
 
@@ -10,7 +10,7 @@
 
 .COPYRIGHT 2024
 
-.TAGS NACHA ACH BANKING FINTECH
+.TAGS NACHA ACH BANKING FINTECH PARCE
 
 .LICENSEURI https://github.com/Trifused/nacha-report/blob/main/LICENSE
 
@@ -18,7 +18,7 @@
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES 
+.EXTERNALMODULEDEPENDENCIES
 
 .REQUIREDSCRIPTS
 
@@ -30,18 +30,18 @@
 
 #>
 
-<# 
+<#
 
-.DESCRIPTION 
- 
-    NACHA - NACHA (National Automated Clearing House Association) is the organization that 
-    manages the development, administration, and governance of the ACH Network in the United 
-    States. The ACH Network is a payment system that allows for the electronic transfer of 
+.DESCRIPTION
+
+    NACHA - NACHA (National Automated Clearing House Association) is the organization that
+    manages the development, administration, and governance of the ACH Network in the United
+    States. The ACH Network is a payment system that allows for the electronic transfer of
     funds between banks and credit unions.
 
     The NACHA file format adheres to a structure where each line, referred to as a **record**,
-    contains exactly 94 characters, making also know as fixed-width ASCII file format. 
-    These records are organized into various **fields**, each occupying a predetermined position 
+    contains exactly 94 characters, making also know as fixed-width ASCII file format.
+    These records are organized into various **fields**, each occupying a predetermined position
     within the line.
 
     A NACHA file contains 6 different types of records:
@@ -51,14 +51,14 @@
     Type 6. **Entry Detail**: Represents individual financial transactions, detailing account numbers and amounts.
     Type 7. **Addenda**: Optional, provides extra information for a transaction.
     Type 8. **Batch Control**: Ends a batch, summarizing its transactions and total amount.
-    Type 9. **File Control**: Concludes the file, summarizing all batches and entries. 
+    Type 9. **File Control**: Concludes the file, summarizing all batches and entries.
 
-#> 
+#>
 
 
 #############################################################################
-# TriFused - Nacha-Report 
-# 
+# TriFused - Nacha-Report
+#
 # NAME: Nacha-Report.ps1
 #
 # AUTHOR: Lawrence Billinghurst
@@ -67,7 +67,7 @@
 #
 # VERSION HISTORY
 # 1.0 2024-03-20 Initial Version.
-# Current: 1.0.7
+# Current: 1.0.9
 # > used field mapping from Joshua Nasiatka - Verify-ACH.ps1
 # Ref: https://github.com/jossryan/ACH-Verify-Tool
 #
@@ -76,18 +76,18 @@
 
 <#
 .SYNOPSIS
-    This script reads a NACH file and outputs a summeary report with out any 
+    This script reads a NACH file and outputs a summeary report with out any
     sensitive account informaion
 
 .DESCRIPTION
-    NACHA - NACHA (National Automated Clearing House Association) is the organization that 
-    manages the development, administration, and governance of the ACH Network in the United 
-    States. The ACH Network is a payment system that allows for the electronic transfer of 
+    NACHA - NACHA (National Automated Clearing House Association) is the organization that
+    manages the development, administration, and governance of the ACH Network in the United
+    States. The ACH Network is a payment system that allows for the electronic transfer of
     funds between banks and credit unions.
 
     The NACHA file format adheres to a structure where each line, referred to as a **record**,
-    contains exactly 94 characters, making also know as fixed-width ASCII file format. 
-    These records are organized into various **fields**, each occupying a predetermined position 
+    contains exactly 94 characters, making also know as fixed-width ASCII file format.
+    These records are organized into various **fields**, each occupying a predetermined position
     within the line.
 
     A NACHA file contains 6 different types of records:
@@ -103,15 +103,15 @@
 
 .PARAMETER ParameterName
     -nachaFilePath C:\FolderA\FolderB\mynachafile.txt  -- path to nacha file (Any extension will work)
-    -testdata       -- Will auto download some test data 
+    -testdata       -- Will auto download some test data
     -showTrace6     -- Will show the Trace codes for type 6
     -no ###         -- remove record types from report
 
 .EXAMPLE
     .\nacha-neport.ps1 -nachaFielPath
     .\nacha-report.ps1 -testdata  -- Use Test data - will prompt to download
-    .\nacha-report.ps1 -no 67     -- Remove type 6 and 7 from report
-    .\nacha-report.ps1 -no 5678   -- Remove type 5, 6, 7 and 8 from report
+    .\nacha-report.ps1 -testdata -no 67     -- Remove type 6 and 7 from report
+    .\nacha-report.ps1 -testdata -no 5678   -- Remove type 5, 6, 7 and 8 from report
 
 
 .NOTES
@@ -126,18 +126,18 @@
     # NACH test data generator - https://yawetse.github.io/nachie/
     # #############################################################################
 
-    Report Format 
+    Report Format
         --------->>> NACHA File Report <<<---------
         NACHA File Name: ach-test-file.txt
         NACHA File Date: January 06, 2015
         NACHA File Time: 12:13 PM
 
         1, [File Date-YYMMDD], [File Time-HHmm], [Destination Name], [Org Name]
-        5, [Batch Number], [Transaction Description], [Effective Date]
+        5, Batch Start: [Batch Number], Info: [Transaction Description], [Effective Date]
             6, [Trans Code], {[Trace Number]}, [Reciver Name], [Amount]
             6, [Trans Code], {[Trace Number]}, [Reciver Name], [(Amount) <--debit]
                 7, [Addenda Type Code], [Payment Related Information], [Addenda Sequence Number], [Entry Detail Sequence Number]
-        8, [Batch Number], [Lines in Batch], [(Debit Total)],[Credit Total]
+        8, Batch End: [Batch Number], Entry Cound: [ in Batch], [(Debit Total)],[Credit Total]
         9, [Batch Count],[Block Count], [Entry Count], [(Debit Total)],[Credit Total]
         --------->>> NACHA File Report End <<<---------
 
@@ -153,6 +153,7 @@ param (
     [string]$nachaFilePath=""
     ,[switch]$showTrace6
     ,[string]$no
+    ,[switch]$silent
     ,[switch]$testdata
 )
 
@@ -160,8 +161,9 @@ param (
 $scriptDirectory = $PSScriptRoot
 
 # Output the directory path
-Write-Output "This Script is running from: $scriptDirectory"
-
+if (-not $silent) {
+    Write-Output "`This Script is running from: $scriptDirectory"
+    }
 $defultTestDataFileName = $scriptDirectory + "\test-nacha-file.txt"
 
 
@@ -169,54 +171,54 @@ $defultTestDataFileName = $scriptDirectory + "\test-nacha-file.txt"
 if (-not ($testdata) ){
 
     if (-not $nachaFilePath)  {
-        Write-Host "Usage: ./nacha-report.ps1 -nachaFilePath <Path to NACHA file>"
-        Write-Host "Usage: ./nacha-report.ps1 -testdata"
+        if (-not $silent){
+            Write-Output "Usage: ./nacha-report.ps1 -nachaFilePath <Path to NACHA file>"
+            Write-Output  "Usage: ./nacha-report.ps1 -testdata"
+        }
         exit 1
-    } 
+    }
 
     } else{
     if ($testdata) {
         if (-not (Test-Path $defultTestDataFileName )) {
             #Write-Host "Test data file not found downloading."
-            Write-Host "Test data file not found."
+            Write-Output "Test data file not found."
 
             # Ask the user if they want to download the test nacha file
             $testfileuri = "https://drive.google.com/file/d/1-tEJ6Y_KMvUIuL55DG1oddekG9cD2WMN"
-            Write-Host "View the test nacha data file at: $($testfileuri)/view"
+            Write-Output "View the test nacha data file at: $($testfileuri)/view"
             $userInput = Read-Host "Do you want to download the test nacha data file? (Y/N)"
 
             if ($userInput -eq 'Y' -or $userInput -eq 'y') {
                         # Assuming $defultTestDataFileName is defined earlier in the script
                         $outputPath = $defultTestDataFileName
-                        
                         # The direct download URL should be different from the view URL
                         # Convert Google Drive view link to download link (this may require a different approach for actual downloading)
                         $url = $testfileuri.Replace("/file/d/", "/uc?export=download&id=").Replace("/view", "")
-                        
                         # Create a web client object
                         $client = New-Object System.Net.WebClient
-                        
+
                         try {
                             $client.DownloadFile($url, $outputPath)
-                            Write-Host "File downloaded successfully to: $outputPath"
+                            Write-Output "File downloaded successfully to: $outputPath"
                         }
                         catch {
-                            Write-Host "An error occurred during file download: $_"
+                            Write-Output "An error occurred during file download: $_"
                         }
             } else {
-                Write-Host "Download canceled by the user."
+                Write-Output "Download canceled by the user."
                 exit 1
                 }
         }
-        $nachaFilePath  
-        $nachaFilePath = $defultTestDataFileName 
-        $nachaFilePath
+        #$nachaFilePath
+        $nachaFilePath = $defultTestDataFileName
+        #$nachaFilePath
         }
 
-    #$nachaFilePath = $defultTestDataFileName 
+    #$nachaFilePath = $defultTestDataFileName
 
         if (-not (Test-Path $nachaFilePath) ) {
-            Write-Host "Error: File not found."
+            Write-Output "Error: File not found."
             exit 1
         }
 }
@@ -254,11 +256,11 @@ Function ReadACHLine ($line) {
             'immediate_origin_name'            = $line.substring(63,23).trim()
             'reference_code'                   = $line.substring(86,8).trim()
         }
-        
-        # ##### Add Line to Output Record 
+
+        # ##### Add Line to Output Record
         $ACHContents.Add($record_details) |Out-Null
         # #####
-        
+
     # 5 - COMPANY/BATCH HEADER RECORD
     } elseif ($record_type -eq '5') {
 
@@ -277,10 +279,10 @@ Function ReadACHLine ($line) {
             'originating_dfi_identification'   = $line.substring(79,8).trim()
             'batch_number'                     = $line.substring(87,7).trim()
         }
-        # ##### Add Line to Output Record 
+        # ##### Add Line to Output Record
         $ACHContents.Add($record_details) |Out-Null
         # #####
-  
+
     # 6 - ENTRY DETAIL RECORD (CCD/PPD ENTRIES)
     } elseif ($record_type -eq '6') {
 
@@ -298,10 +300,10 @@ Function ReadACHLine ($line) {
             'trace_number'                     = $line.substring(79,15).trim()
         }
 
-        # ##### Add Line to Output Record 
+        # ##### Add Line to Output Record
         $ACHContents.Add($record_details) |Out-Null
         # #####
-    
+
     # 7 - ADDENDA RECORD
     } elseif ($record_type -eq '7') {
 
@@ -313,7 +315,7 @@ Function ReadACHLine ($line) {
             'entry_detail_sequence_number'     = $line.substring(87,7).trim()
         }
 
-        # ##### Add Line to Output Record 
+        # ##### Add Line to Output Record
         $ACHContents.Add($record_details) |Out-Null
         # #####
 
@@ -333,11 +335,10 @@ Function ReadACHLine ($line) {
             'originating_dfi_identification'   = $line.substring(79,8).trim()
             'batch_number'                     = $line.substring(87,7).trim()
         }
-        
-        # ##### Add Line to Output Record 
+
+        # ##### Add Line to Output Record
         $ACHContents.Add($record_details) |Out-Null
         # #####
-  
     # 9 - FILE CONTROL RECORD
     } elseif ($record_type -eq '9') {
         if ($line -ne '9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999') {
@@ -353,10 +354,9 @@ Function ReadACHLine ($line) {
                 'reserved_9'                         = $line.substring(55,39).trim()
             }
 
-            # ##### Add Line to Output Record 
+            # ##### Add Line to Output Record
             $ACHContents.Add($record_details) |Out-Null
-            # #####     
- 
+            # #####
         } else {
             #Write-Output ">>>End of File"
         }
@@ -366,7 +366,6 @@ Function ReadACHLine ($line) {
         Write-Warning "Invalid record, skipping..."
         return
     }
-    
 }
 
 
@@ -375,11 +374,11 @@ Function ReadACHLine ($line) {
 
 # Load the nacha file in memory
 
-Write-Host $nachaFilePath
+if (-not $silent) {Write-Output "Reading File:  $nachaFilePath"}
 $nachaFileContent = Get-Content $nachaFilePath
 
 
-#clear Output varable 
+#clear Output varable
 [System.Collections.ArrayList]$ACHContents = @()
 
 # Loop through each line and parse the contents
@@ -387,38 +386,38 @@ foreach ($line in $nachaFileContent) {
        ReadACHLine($line)
        }
 
-Write-Host "NACHA File Parsing completed.`r`n"
+if (-not $silent) {Write-Output "NACHA File Parsing completed.`r`n"}
 
 # Build the Report
 $NachaFileTime =""
-$FinalReport =  "--------->>> NACHA File Report <<<---------`r`n" # Clear and Start building report
+$FinalReport =  "`r`n--------->>> NACHA File Report <<<---------`r`n`n" # Clear and Start building report
 $NachafileName = Split-Path -Path $nachaFilePath -Leaf
 $FinalReport = $FinalReport + "NACHA File Name: " + $NachafileName + "`r`n"
 
 $ACHContents | ForEach-Object {
     $currentObject = $_
-    
-
     switch ($currentObject.record_type) {
         "1" {
-            if (-not($no.Contains($currentObject.record_type))) {
-                    $ReportOut = "$($currentObject.record_type), $($currentObject.file_creation_date), $($currentObject.file_creation_time), $($currentObject.immediate_destination_name), $($currentObject.immediate_origin_name)"
-                    $NachaFileDate=$($currentObject.file_creation_date)
-                    $NachaFileTime=$($currentObject.file_creation_time)
-                    # Parse the date string into a DateTime object
-                    $parsedDate = [DateTime]::ParseExact($NachaFileDate, "yymmdd", $null)
-                    $parsedTime = [DateTime]::ParseExact($NachaFileTime, "HHmm", $null)
-                    # Convert the DateTime object into a long date format string and add to report
-                    $FinalReport += "NACHA File Date: " + $parsedDate.ToString("MMMM dd, yyyy") +  "`r`n" # Add Date to Report
-                    $FinalReport += "NACHA File Time: " + $parsedTime.ToString("hh:mm tt") + "`r`n" # Add Time to Report
+                 $NachaFileDate=$($currentObject.file_creation_date)
+                 $NachaFileTime=$($currentObject.file_creation_time)
+                 # Parse the date string into a DateTime object
+                 $parsedDate = [DateTime]::ParseExact($NachaFileDate, "yyMMdd", $null)
+                 $parsedTime = [DateTime]::ParseExact($NachaFileTime, "HHmm", $null)
+                 # Convert the DateTime object into a long date format string and add to report
+                 $FinalReport += "NACHA File Date: " + $parsedDate.ToString("MMMM dd, yyyy") +  "`r`n" # Add Date to Report
+                 $FinalReport += "NACHA File Time: " + $parsedTime.ToString("hh:mm tt") + "`r`n" # Add Time to Report
+                if (-not($no.Contains($currentObject.record_type))) {
+                   $ReportOut = "$($currentObject.record_type), $($currentObject.file_creation_date), $($currentObject.file_creation_time), $($currentObject.immediate_destination_name), $($currentObject.immediate_origin_name)"
                     $FinalReport += "`n"+$ReportOut # Add data to report
                     break
-                }    
+                }
 
             }
          "5" {
                 if (-not($no.Contains($currentObject.record_type))) {
-                    $ReportOut = "  $($currentObject.record_type), Batch: $($currentObject.batch_number), $($currentObject.company_entry_description), $($currentObject.effective_entry_date)"
+                    $parsedDate = [DateTime]::ParseExact($currentObject.effective_entry_date, "yyMMdd", $null)
+                    $EffFormatedDate = " Effective Date: [" + $parsedDate.ToString("MMM/dd/yyyy")  # Add Effective Entry Date to Report
+                    $ReportOut = "  $($currentObject.record_type), Start Batch: $($currentObject.batch_number), Info: $($currentObject.company_entry_description),$EffFormatedDate] "
                     $FinalReport += "`n"+$ReportOut # Add data to report
                     break
                 }
@@ -458,9 +457,9 @@ $ACHContents | ForEach-Object {
             if (-not($no.Contains($currentObject.record_type))) {
                 $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry)
                 $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry)
-                $ReportOut =  "  $($currentObject.record_type), Batch: $($currentObject.batch_number), $($currentObject.entry_addenda_count_8), $formattedDebitTotal,$formattedCreditTotal"
+                $ReportOut =  "  $($currentObject.record_type),   End Batch: $($currentObject.batch_number), Entry Count: $($currentObject.entry_addenda_count_8), $formattedDebitTotal,$formattedCreditTotal"
                 $FinalReport += "`n"+$ReportOut # Add data to report
-                break           
+                break
              }
 
         }
@@ -469,8 +468,8 @@ $ACHContents | ForEach-Object {
                 $formattedDebitTotal =  "({0:N2})" -f $($currentObject.total_debit_entry_in_file)
                 $formattedCreditTotal =  "{0:N2}" -f $($currentObject.total_credit_entry_in_file)
                 $ReportOut = "$($currentObject.record_type), $($currentObject.batch_count),$($currentObject.block_count), $($currentObject.entry_addenda_count_9), $formattedDebitTotal,$formattedCreditTotal"+"`n"
-                $FinalReport += "`n"+$ReportOut # Add data to report
-                break            
+                $FinalReport += "`r`n`n"+$ReportOut # Add data to report - pushed 9 down 1 line
+                break
             }
 
         }
