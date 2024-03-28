@@ -10,7 +10,7 @@
 - Customizable to show detailed trace information for each transaction.
 
 ## Version
-1.0.8
+1.0.9
 
 ## Install
 Install-Script -Name nacha-report 
