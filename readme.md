@@ -1,16 +1,20 @@
 # TriFused - Nacha-Report
 
 ## Overview
-`nacha-report.ps1` is a PowerShell script designed to read a NACHA ach file and produce a more human readable summary report without exposing sensitive account information. This script is useful for auditing and analyzing ACH (Automated Clearing House) transactions while ensuring confidentiality and compliance.
+The `nacha-report.ps1` PowerShell script is designed to read a NACHA `ach` file then produce a more human readable summary report without exposing sensitive account information. This script is useful for auditing and analyzing ACH (Automated Clearing House) transactions while ensuring confidentiality and compliance. 
+
+Nacha File Details from Nacha.org
+Ref: https://achdevguide.nacha.org/ach-file-details
 
 ## Features
-- Reads NACHA formatted ach files and generates a concise report.
+- Reads NACHA formatted ach files and generates a more readable report.
 - Omits sensitive account details to maintain privacy.
 - Offers options for downloading test data for functionality verification.
 - Customizable to show detailed trace information for each transaction.
+- Report output can be piped to email and notification tools.
 
 ## Version
-1.0.9
+1.0.10
 
 ## Install
 Install-Script -Name nacha-report 
@@ -20,9 +24,14 @@ To use the script, you need to provide the path to the NACHA file you want to an
 
 ### Basic Command
 ps>```powershell
-.\nacha-report.ps1 -nachaFilePath "C:\Path\To\Your\File.txt"
-.\nacha-report.ps1 -testdata
-.\nacha-neport.ps1 -nachaFielPath
-.\nacha-report.ps1 -testdata  -- Use Test data - will prompt to download
-.\nacha-report.ps1 -testdata -no 67     -- Remove type 6 and 7 from report
-.\nacha-report.ps1 -testdata -no 5678   -- Remove type 5, 6, 7 and 8 from report
+    .\nacha-report.ps1 -nachaFilePath "C:\Path\To\Your\File.txt"
+
+    .\nacha-report.ps1 -testdata
+
+    .\nacha-neport.ps1 -nachaFielPath
+
+    .\nacha-report.ps1 -testdata  -- Use Test data - will prompt to download
+
+    .\nacha-report.ps1 -testdata -no 67     -- Remove type 6 and 7 from report
+
+    .\nacha-report.ps1 -testdata -no 5678   -- Remove type 5, 6, 7 and 8 from report

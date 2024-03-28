@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 1.0.9
+.VERSION 1.0.10
 
 .GUID 2687ebd5-b9f5-403a-bf2b-13fed20fd6cd
 
@@ -10,7 +10,7 @@
 
 .COPYRIGHT 2024
 
-.TAGS NACHA ACH BANKING FINTECH PARCE
+.TAGS NACHA ACH BANKING FINTECH PARCE DATA AUTOMATION POWERSHELL
 
 .LICENSEURI https://github.com/Trifused/nacha-report/blob/main/LICENSE
 
@@ -25,7 +25,7 @@
 .EXTERNALSCRIPTDEPENDENCIES
 
 .RELEASENOTES
-
+ -added silent switch, updated format, ran Invoke-ScriptAnalyzer, changed write-host to write-output
 .PRIVATEDATA
 
 #>
@@ -67,7 +67,7 @@
 #
 # VERSION HISTORY
 # 1.0 2024-03-20 Initial Version.
-# Current: 1.0.9
+# Current: 1.0.10
 # > used field mapping from Joshua Nasiatka - Verify-ACH.ps1
 # Ref: https://github.com/jossryan/ACH-Verify-Tool
 #
@@ -105,6 +105,7 @@
     -nachaFilePath C:\FolderA\FolderB\mynachafile.txt  -- path to nacha file (Any extension will work)
     -testdata       -- Will auto download some test data
     -showTrace6     -- Will show the Trace codes for type 6
+    -silent         -- Clean report output when piping 
     -no ###         -- remove record types from report
 
 .EXAMPLE
